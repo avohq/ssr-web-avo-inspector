@@ -28,13 +28,14 @@ or
 Obtain the API key at [Avo.app](https://www.avo.app/welcome)
 
 ```javascript
-import * as Inspector from "avo-inspector";
+import * as Inspector from "experimental-js-avo-inspector";
 
 let inspector = new Inspector.AvoInspector({
   apiKey: "your api key",
   env: Inspector.AvoInspectorEnv.Dev,
   version: "1.0.0",
   appName: "My app",
+  suffix: "instance0"
 });
 ```
 

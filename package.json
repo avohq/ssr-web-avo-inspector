@@ -1,6 +1,6 @@
 {
   "name": "experimental-js-avo-inspector",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Experimental build of the Avo Inspector for web",
   "main": "dist/index.js",
   "browser": "dist/index.js",
