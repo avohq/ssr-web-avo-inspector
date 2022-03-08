@@ -1,5 +1,5 @@
 {
-  "name": "avo-inspector",
+  "name": "experimental-js-avo-inspector",
   "sources": [
     {
       "dir": "reason",

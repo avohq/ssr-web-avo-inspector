@@ -14,7 +14,7 @@ type options = {
   version: string
 };
 
-[@bs.new] [@bs.module "avo-inspector"]
+[@bs.new] [@bs.module "experimental-js-avo-inspector"]
 external make: options => t = "AvoInspector";
 
 let make = (~apiKey, ~env, ~version, ()) => {
