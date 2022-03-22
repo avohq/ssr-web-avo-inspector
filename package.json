@@ -1,6 +1,6 @@
 {
   "name": "experimental-js-avo-inspector",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "Experimental build of the Avo Inspector for web",
   "main": "dist/index.js",
   "browser": "dist/index.js",
@@ -38,7 +38,6 @@
     "analytics",
     "avo",
     "react",
-    "react-native",
     "node",
     "javascript"
   ],
@@ -66,11 +65,9 @@
     "webpack": "4.44.2",
     "webpack-cli": "3.3.12"
   },
-  "externals": [
-    "react-native"
-  ],
   "dependencies": {
     "axios": "^0.26.0",
-    "localforage": "1.10.0"
+    "localforage": "1.10.0",
+    "localforage-driver-memory": "^1.0.5"
   }
 }

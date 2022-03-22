@@ -1,4 +1,5 @@
 import localforage = require("localforage");
+import memoryDriver = require("localforage-driver-memory");
 
 abstract class PlatformAvoStorage {
   abstract init(shouldLog: boolean, suffix: string): void;
@@ -30,7 +31,18 @@ class BrowserAvoStorage extends PlatformAvoStorage {
     this.shouldLog = shouldLog;
 
     if (this.createLocalForage(suffix)) {
-      this.loadDataToMemoryToAvoidAsyncQueries(() => {
+      this.localForage?.ready().then(() => {
+        this.loadDataToMemoryToAvoidAsyncQueries(() => {
+          this.onInitializeStorageWeb();
+        });
+      }).catch((error) => {
+        if (this.shouldLog && typeof window !== "undefined") {
+          if (typeof window !== "undefined") {
+            console.log("Avo Inspector: Using in-memory storage because:", error);
+          } else {
+            console.log("Avo Inspector: Using in-memory storage");
+          }
+        }
         this.onInitializeStorageWeb();
       });
     } else {
@@ -53,7 +65,14 @@ class BrowserAvoStorage extends PlatformAvoStorage {
       })
         .then((_) => {
           onLoaded();
-        }).catch((_) => {
+        }).catch((error) => {
+          if (this.shouldLog) {
+            if (typeof window !== "undefined") {
+              console.log("Avo Inspector load data: Using in-memory storage because:", error);
+            } else {
+              console.log("Avo Inspector load data: Using in-memory storage");
+            }
+          }
           onLoaded();
         });
     }
@@ -71,6 +90,9 @@ class BrowserAvoStorage extends PlatformAvoStorage {
       this.localForage = localforage.createInstance({
         name: "avoinspector" + suffix
       });
+      this.localForage.defineDriver(memoryDriver);
+      this.localForage.setDriver([this.localForage.LOCALSTORAGE,
+      this.localForage.INDEXEDDB, this.localForage.WEBSQL, memoryDriver._driver]);
       return true;
     } catch (error) {
       return false;
@@ -102,12 +124,16 @@ class BrowserAvoStorage extends PlatformAvoStorage {
     try {
       this.localForage?.setItem(key, JSON.stringify(value)).then(function (_) { }).catch((error) => {
         if (this.shouldLog) {
-          console.log("Avo Inspector Storage setItem error:", error);
+          if (typeof window !== "undefined") {
+            console.log("Avo Inspector: Using in-memory storage because:", error);
+          } else {
+            console.log("Avo Inspector: Using in-memory storage");
+          }
         }
       });
     } catch (error) {
       if (this.shouldLog) {
-        console.log("Avo Inspector Storage setItem error:", error);
+        console.log("Avo Inspector: Using in-memory storage because:", error);
       }
 
     }
@@ -116,12 +142,18 @@ class BrowserAvoStorage extends PlatformAvoStorage {
   removeItem(key: string): void {
     memoryStorage[key] = null;
     try {
-      this.localForage?.removeItem(key).then(function () { }).catch(function (err) {
-        console.log('Avo Inspector Storage error:', err);
+      this.localForage?.removeItem(key).then(function () { }).catch((err) => {
+        if (this.shouldLog) {
+          if (typeof window !== "undefined") {
+            console.log('Avo Inspector: Using in-memory storage because:', err);
+          } else {
+            console.log('Avo Inspector: Using in-memory storage');
+          }
+        }
       });
     } catch (error) {
       if (this.shouldLog) {
-        console.error("Avo Inspector Storage removeItem error:", error);
+        console.error("Avo Inspector: Using in-memory storage because:", error);
       }
     }
   }
