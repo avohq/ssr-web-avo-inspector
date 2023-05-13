@@ -1,6 +1,6 @@
 {
   "name": "ssr-web-avo-inspector",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Avo Inspector for web with SSR and web workers support",
   "main": "dist/index.js",
   "browser": "dist/index.js",
