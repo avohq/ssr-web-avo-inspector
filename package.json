@@ -1,7 +1,7 @@
 {
-  "name": "experimental-js-avo-inspector",
-  "version": "0.0.4",
-  "description": "Experimental build of the Avo Inspector for web",
+  "name": "ssr-web-avo-inspector",
+  "version": "1.0.0",
+  "description": "Avo Inspector for web with SSR and web workers support",
   "main": "dist/index.js",
   "browser": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/avohq/web-avo-inspector.git"
+    "url": "git+https://github.com/avohq/ssr-web-avo-inspector"
   },
   "jest": {
     "transform": {
@@ -44,9 +44,9 @@
   "author": "Avo (https://www.avo.app)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/avohq/web-avo-inspector/issues"
+    "url": "https://github.com/avohq/ssr-web-avo-inspector/issues"
   },
-  "homepage": "https://github.com/avohq/web-avo-inspector#readme",
+  "homepage": "https://github.com/avohq/ssr-web-avo-inspector#readme",
   "devDependencies": {
     "@babel/core": "7.12.10",
     "@babel/preset-env": "7.12.11",

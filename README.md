@@ -2,6 +2,8 @@
 
 [![npm version](https://badge.fury.io/js/avo-inspector.svg)](https://badge.fury.io/js/avo-inspector)
 
+This is a special build to be user with server side rendering and web workers. If you don't need those features use the [main library](https://github.com/avohq/js-avo-inspector)
+
 # Avo documentation
 
 This is a quick start guide.
@@ -14,13 +16,13 @@ For more information about the Inspector project please read [Avo documentation]
 The library is distributed with npm
 
 ```
-    npm i avo-inspector
+    npm i ssr-web-inspector
 ```
 
 or
 
 ```
-    yarn add avo-inspector
+    yarn add ssr-web-inspector
 ```
 
 # Initialization
@@ -47,13 +49,13 @@ Logs are enabled by default in the dev mode and disabled in prod mode.
 inspector.enableLogging(true);
 ```
 
-# Integrating with Avo Functions (Avo generated code)
+# Integrating with Avo Codegen (Avo generated code)
 
 The setup is lightweight and is covered [in this guide](https://www.avo.app/docs/implementation/start-using-inspector-with-avo-functions).
 
 Every event sent with Avo Function after this integration will automatically be sent to the Avo Inspector.
 
-# Sending event schemas for events reported outside of Avo Functions
+# Sending event schemas for events reported outside of Avo Codegen
 
 Whenever you send tracking event call one of the following methods:
 
