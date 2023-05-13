@@ -1,4 +1,4 @@
-# Avo Inspector
+# SSR and Web Workers Avo Inspector
 
 [![npm version](https://badge.fury.io/js/avo-inspector.svg)](https://badge.fury.io/js/avo-inspector)
 
