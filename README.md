@@ -14,13 +14,13 @@ For more information about the Inspector project please read [Avo documentation]
 The library is distributed with npm
 
 ```
-    npm i ssr-web-inspector
+    npm i ssr-web-avo-inspector
 ```
 
 or
 
 ```
-    yarn add ssr-web-inspector
+    yarn add ssr-web-avo-inspector
 ```
 
 # Initialization
@@ -28,7 +28,7 @@ or
 Obtain the API key at [Avo.app](https://www.avo.app/welcome)
 
 ```javascript
-import * as Inspector from "ssr-web-inspector";
+import * as Inspector from "ssr-web-avo-inspector";
 
 let inspector = new Inspector.AvoInspector({
   apiKey: "your api key",
