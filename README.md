@@ -28,7 +28,7 @@ or
 Obtain the API key at [Avo.app](https://www.avo.app/welcome)
 
 ```javascript
-import * as Inspector from "experimental-js-avo-inspector";
+import * as Inspector from "ssr-web-inspector";
 
 let inspector = new Inspector.AvoInspector({
   apiKey: "your api key",
