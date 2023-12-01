@@ -1,9 +1,10 @@
+import axios from 'axios';
 import AvoGuid from "../AvoGuid";
 import { AvoInstallationId } from "../AvoInstallationId";
 import { AvoNetworkCallsHandler, BaseBody } from "../AvoNetworkCallsHandler";
 import { AvoSessionTracker } from "../AvoSessionTracker";
 
-import axiosDefaultMock from "../__mocks__/axios";
+jest.mock('axios');
 
 import {
   defaultOptions,
@@ -126,7 +127,7 @@ describe("NetworkCallsHandler", () => {
 
     networkHandler.callInspectorWithBatchBody(events, customCallback);
 
-    expect(axiosDefaultMock.post).not.toBeCalled();
+    expect(axios.post).not.toBeCalled();
   });
 
   test("callInspectorWithBatchBody sends POST request", () => {
@@ -146,7 +147,7 @@ describe("NetworkCallsHandler", () => {
       expect(error).toBe(null);
     });
 
-    expect(axiosDefaultMock.post).toBeCalledTimes(1);
+    expect(axios.post).toBeCalledTimes(1);
   });
 
   test("Custom callback is called when 200 OK", () => {
