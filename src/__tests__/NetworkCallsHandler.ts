@@ -4,8 +4,6 @@ import { AvoInstallationId } from "../AvoInstallationId";
 import { AvoNetworkCallsHandler, BaseBody } from "../AvoNetworkCallsHandler";
 import { AvoSessionTracker } from "../AvoSessionTracker";
 
-jest.mock('axios');
-
 import {
   defaultOptions,
   mockedReturns,
