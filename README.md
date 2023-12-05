@@ -108,6 +108,22 @@ inspector.setBatchSize(15);
 inspector.setBatchFlushSeconds(10);
 ```
 
+# Developing
+
+If you find anything could be improved or added to this package we welcome your contributions. 
+
+## Getting started
+
+To make changes you'll need to have a recent version of Node installed and Yarn (version 1) to install (and update, if need) the proper packages. Run `yarn install` to install the dependencies and `yarn build` to compile the TypeScript files. 
+
+## Making changes
+
+While you're developing you can use the watch mode to compile your files while you're editing: `yarn build --watch`. Once you've made your changes run `yarn test` to make sure the tests pass. If you've added new functionality please add tests for it as well. Once you're happy with your changes please open a PR.
+
+## Publishing
+
+When you have unpublished changes on the main branch that you want to get out to the world you can publish a new version. Pull the latest version and run `yarn build` followed by `npm publish`. Note that this is only an option for members of the Avo team. Add a summary of the changes from the last version to the changelog, make a commit with the increased version number called `Release x.y.z` and tag it with the same version number (`x.y.z`). 
+
 ## Author
 
 Avo (https://www.avo.app), friends@avo.app
