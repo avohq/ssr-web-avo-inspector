@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/ssr-web-avo-inspector.svg)](https://badge.fury.io/js/ssr-web-avo-inspector)
 
-This is a special build to be user with server side rendering and web workers. If you don't need those features use the [main library](https://github.com/avohq/js-avo-inspector)
+This is a special build for server side rendering and web workers. If you don't need those features use the [main library](https://github.com/avohq/js-avo-inspector)
 
 # Avo documentation
 
