@@ -2,7 +2,7 @@ import AvoGuid from "./AvoGuid";
 import { AvoSessionTracker } from "./AvoSessionTracker";
 import { AvoInspector } from "./AvoInspector";
 import { AvoInstallationId } from "./AvoInstallationId";
-import axios = require('axios');
+import axios from 'axios';
 
 export interface BaseBody {
   apiKey: string;
@@ -98,7 +98,7 @@ export class AvoNetworkCallsHandler {
 
     this.sending = true;
 
-    axios.default.post(AvoNetworkCallsHandler.trackingEndpoint, events, { headers: { "Content-Type": "text/plain" } })
+    axios.post(AvoNetworkCallsHandler.trackingEndpoint, events, { headers: { "Content-Type": "text/plain" } })
       .then((response) => {
         if (response.status != 200) {
           onCompleted(`Error ${response.status}: ${response.statusText}`);

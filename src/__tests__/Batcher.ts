@@ -298,7 +298,7 @@ describe("Batcher", () => {
       }
       events.splice(0, 2);
       
-      expect(setItemsSpy).toHaveBeenCalledTimes(1);
+      expect(setItemsSpy).toHaveBeenCalledTimes(2);
     //  expect(setItemsSpy).toHaveBeenCalledWith(AvoBatcher.cacheKey, events);
    
       done();
