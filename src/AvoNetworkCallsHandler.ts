@@ -2,7 +2,6 @@ import AvoGuid from "./AvoGuid";
 import { AvoSessionTracker } from "./AvoSessionTracker";
 import { AvoInspector } from "./AvoInspector";
 import { AvoInstallationId } from "./AvoInstallationId";
-import axios from 'axios';
 
 export interface BaseBody {
   apiKey: string;
@@ -98,19 +97,27 @@ export class AvoNetworkCallsHandler {
 
     this.sending = true;
 
-    axios.post(AvoNetworkCallsHandler.trackingEndpoint, events, { headers: { "Content-Type": "text/plain" } })
-      .then((response) => {
-        if (response.status != 200) {
-          onCompleted(`Error ${response.status}: ${response.statusText}`);
-        } else {
-          const samplingRate = response.data["samplingRate"];
+    fetch(AvoNetworkCallsHandler.trackingEndpoint, {
+      headers: {
+        "Content-Type": "text/plain",
+        method: "POST",
+        body: JSON.stringify(events),
+      },
+      mode: 'no-cors'
+    }).then((response) => {
+      if (response.status != 200) {
+        onCompleted(`Error ${response.status}: ${response.statusText}`);
+      } else {
+        response.json().then((data) => {
+          const samplingRate = data["samplingRate"];
           if (samplingRate !== undefined) {
             this.samplingRate = samplingRate;
           }
 
           onCompleted(null);
-        }
-      })
+        });
+      }
+    });
 
     this.sending = false;
   }
