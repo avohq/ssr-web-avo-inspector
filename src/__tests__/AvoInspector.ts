@@ -3,6 +3,13 @@ import { AvoInspectorEnv } from "../AvoInspectorEnv";
 
 import { error } from "../__tests__/constants";
 
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    status: 200,
+    json: () => Promise.resolve({ test: 100 }),
+  }),
+) as jest.Mock;
+
 describe("Initialization", () => {
   test("Api Key is set", () => {
     // Given
