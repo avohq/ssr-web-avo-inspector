@@ -61,6 +61,8 @@
     "typescript": "*"
   },
   "dependencies": {
+    "@types/axios": "^0.14.0",
+    "axios": "^1.7.4",
     "localforage": "^1.10.0",
     "localforage-driver-memory": "^1.0.5"
   }

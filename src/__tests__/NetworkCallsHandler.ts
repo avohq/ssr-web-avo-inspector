@@ -1,14 +1,8 @@
+import axios from 'axios';
 import AvoGuid from "../AvoGuid";
 import { AvoInstallationId } from "../AvoInstallationId";
 import { AvoNetworkCallsHandler, BaseBody } from "../AvoNetworkCallsHandler";
 import { AvoSessionTracker } from "../AvoSessionTracker";
-
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    status: 200,
-    json: () => Promise.resolve({ test: 100 }),
-  }),
-) as jest.Mock;
 
 import {
   defaultOptions,
@@ -131,7 +125,7 @@ describe("NetworkCallsHandler", () => {
 
     networkHandler.callInspectorWithBatchBody(events, customCallback);
 
-    expect(fetch).not.toHaveBeenCalled();
+    expect(axios.post).not.toBeCalled();
   });
 
   test("callInspectorWithBatchBody sends POST request", () => {
@@ -151,7 +145,7 @@ describe("NetworkCallsHandler", () => {
       expect(error).toBe(null);
     });
 
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(axios.post).toBeCalledTimes(1);
   });
 
   test("Custom callback is called when 200 OK", () => {
