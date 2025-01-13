@@ -103,6 +103,7 @@ export class AvoNetworkCallsHandler {
         method: "POST",
         body: JSON.stringify(events),
       },
+      mode: 'no-cors'
     }).then((response) => {
       if (response.status != 200) {
         onCompleted(`Error ${response.status}: ${response.statusText}`);
