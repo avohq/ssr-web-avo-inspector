@@ -1,6 +1,6 @@
 {
   "name": "ssr-web-avo-inspector",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Avo Inspector for web with SSR and web workers support",
   "main": "dist/index.js",
   "browser": "dist/index.js",
@@ -61,6 +61,8 @@
     "typescript": "*"
   },
   "dependencies": {
+    "@types/axios": "^0.14.0",
+    "axios": "^1.7.4",
     "localforage": "^1.10.0",
     "localforage-driver-memory": "^1.0.5"
   }

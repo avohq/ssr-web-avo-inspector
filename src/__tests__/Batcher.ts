@@ -7,13 +7,6 @@ import { defaultOptions, networkCallType } from "./constants";
 
 const inspectorVersion = process.env.npm_package_version || "";
 
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    status: 200,
-    json: () => Promise.resolve({ test: 100 }),
-  }),
-) as jest.Mock;
-
 describe("Batcher", () => {
   let checkBatchSpy: jest.SpyInstance<any, unknown[]>;
   let inspectorCallSpy: jest.SpyInstance<any, unknown[]>;
