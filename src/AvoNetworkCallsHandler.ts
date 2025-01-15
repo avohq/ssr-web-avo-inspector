@@ -98,12 +98,9 @@ export class AvoNetworkCallsHandler {
     this.sending = true;
 
     fetch(AvoNetworkCallsHandler.trackingEndpoint, {
-      headers: {
-        "Content-Type": "text/plain",
-        method: "POST",
-        body: JSON.stringify(events),
-      },
-      mode: 'no-cors'
+      headers: { "Content-Type": "text/plain" },
+      method: "POST",
+      body: JSON.stringify(events),
     }).then((response) => {
       if (response.status != 200) {
         onCompleted(`Error ${response.status}: ${response.statusText}`);
