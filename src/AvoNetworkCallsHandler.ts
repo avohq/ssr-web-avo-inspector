@@ -1,7 +1,6 @@
 import AvoGuid from "./AvoGuid";
-import { AvoSessionTracker } from "./AvoSessionTracker";
+import { AvoStreamId } from "./AvoStreamId";
 import { AvoInspector } from "./AvoInspector";
-import { AvoInstallationId } from "./AvoInstallationId";
 
 export interface BaseBody {
   apiKey: string;
@@ -11,9 +10,8 @@ export interface BaseBody {
   env: string;
   libPlatform: "web";
   messageId: string;
-  trackingId: string;
+  anonymousId: string;
   createdAt: string;
-  sessionId: string;
   samplingRate: number;
 }
 
@@ -67,8 +65,6 @@ export class AvoNetworkCallsHandler {
 
     const events = inEvents.filter(x => x != null);
 
-    this.fixSessionAndTrackingIds(events);
-
     if (events.length === 0) {
       return;
     }
@@ -119,40 +115,6 @@ export class AvoNetworkCallsHandler {
     this.sending = false;
   }
 
-  private fixSessionAndTrackingIds(events: (SessionStartedBody | EventSchemaBody)[]) {
-    let knownSessionId: string | null = null;
-    let knownTrackingId: string | null = null;
-    events.forEach(
-      function (event) {
-        if (event.sessionId !== null && event.sessionId !== undefined && event.sessionId !== "unknown") {
-          knownSessionId = event.sessionId;
-        }
-
-        if (event.trackingId !== null && event.trackingId !== undefined && event.trackingId !== "unknown") {
-          knownTrackingId = event.trackingId;
-        }
-      }
-    );
-    events.forEach(
-      function (event) {
-        if (event.sessionId === "unknown") {
-          if (knownSessionId != null) {
-            event.sessionId = knownSessionId;
-          } else {
-            event.sessionId = AvoSessionTracker.sessionId
-          }
-        }
-        if (event.trackingId === "unknown") {
-          if (knownTrackingId != null) {
-            event.trackingId = knownTrackingId;
-          } else {
-            event.trackingId = AvoInstallationId.getInstallationId();
-          }
-        }
-      }
-    );
-  }
-
   bodyForSessionStartedCall(): SessionStartedBody {
     let sessionBody = this.createBaseCallBody() as SessionStartedBody;
     sessionBody.type = "sessionStarted";
@@ -196,9 +158,8 @@ export class AvoNetworkCallsHandler {
       env: this.envName,
       libPlatform: "web",
       messageId: AvoGuid.newGuid(),
-      trackingId: AvoInstallationId.getInstallationId(),
+      anonymousId: AvoStreamId.getAnonymousId(),
       createdAt: new Date().toISOString(),
-      sessionId: AvoSessionTracker.sessionId,
       samplingRate: this.samplingRate,
     };
   }
