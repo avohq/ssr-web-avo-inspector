@@ -4,6 +4,11 @@ import { AvoBatcher } from "./AvoBatcher";
 import { AvoNetworkCallsHandler } from "./AvoNetworkCallsHandler";
 import { AvoStorage } from "./AvoStorage";
 import { AvoDeduplicator } from "./AvoDeduplicator";
+import { AvoStreamId } from "./AvoStreamId";
+import { AvoEventSpecFetcher } from "./eventSpec/AvoEventSpecFetcher";
+import { EventSpecCache } from "./eventSpec/AvoEventSpecCache";
+import { validateEvent as runValidation } from "./eventSpec/EventValidator";
+import type { ValidationResult } from "./eventSpec/AvoEventSpecFetchTypes";
 
 import { isValueEmpty } from "./utils";
 
@@ -17,6 +22,11 @@ export class AvoInspector {
   version: string;
 
   static avoStorage: AvoStorage;
+
+  private eventSpecFetcher: AvoEventSpecFetcher;
+  private eventSpecCache: EventSpecCache;
+  /** Last seen branchId from event spec responses, used for cache flush on branch change */
+  private lastSeenBranchId: string | null = null;
 
   private static _batchSize = 30;
   static get batchSize() {
@@ -102,6 +112,14 @@ export class AvoInspector {
     );
     this.avoBatcher = new AvoBatcher(avoNetworkCallsHandler);
     this.avoDeduplicator = new AvoDeduplicator();
+
+    // Initialize event spec validation (active in dev/staging only)
+    this.eventSpecCache = new EventSpecCache(AvoInspector._shouldLog);
+    this.eventSpecFetcher = new AvoEventSpecFetcher(
+      2000,
+      AvoInspector._shouldLog,
+      this.environment.toString()
+    );
   }
 
   trackSchemaFromEvent(
@@ -300,5 +318,82 @@ export class AvoInspector {
 
   setBatchFlushSeconds(newBatchFlushSeconds: number): void {
     AvoInspector._batchFlushSeconds = newBatchFlushSeconds;
+  }
+
+  /**
+   * Validates event properties against the Avo tracking plan spec.
+   *
+   * Active only in dev/staging environments. In prod, returns null immediately.
+   * Null spec responses are cached to avoid re-fetching.
+   * Cache is flushed when branchId changes between responses.
+   *
+   * @param eventName - The name of the event to validate
+   * @param eventProperties - The properties to validate
+   * @returns ValidationResult with property validation results, or null if spec unavailable
+   */
+  async validateEvent(
+    eventName: string,
+    eventProperties: { [propName: string]: any }
+  ): Promise<ValidationResult | null> {
+    // Only validate in dev/staging
+    if (
+      this.environment !== AvoInspectorEnv.Dev &&
+      this.environment !== AvoInspectorEnv.Staging
+    ) {
+      return null;
+    }
+
+    try {
+      // Determine stream ID for spec fetching (use apiKey as stream identifier)
+      const streamId = AvoStreamId.getAnonymousId();
+
+      // Check cache first
+      const cachedSpec = this.eventSpecCache.get(this.apiKey, streamId, eventName);
+      if (cachedSpec !== undefined) {
+        // Cache hit - cachedSpec is either EventSpecResponse or null (known absent)
+        if (cachedSpec === null) {
+          return null;
+        }
+        return runValidation(eventProperties, cachedSpec);
+      }
+
+      // Cache miss - fetch the spec
+      const spec = await this.eventSpecFetcher.fetch({
+        apiKey: this.apiKey,
+        streamId,
+        eventName,
+      });
+
+      // Cache the result (including null for known-absent specs)
+      this.eventSpecCache.set(this.apiKey, streamId, eventName, spec);
+
+      if (spec === null) {
+        return null;
+      }
+
+      // Check for branchId change and flush cache if needed
+      const responseBranchId = spec.metadata.branchId;
+      if (this.lastSeenBranchId !== null && this.lastSeenBranchId !== responseBranchId) {
+        if (AvoInspector._shouldLog) {
+          console.log(
+            `[Avo Inspector] Branch ID changed from ${this.lastSeenBranchId} to ${responseBranchId}. Flushing event spec cache.`
+          );
+        }
+        this.eventSpecCache.clear();
+        // Re-cache the current spec after flush
+        this.eventSpecCache.set(this.apiKey, streamId, eventName, spec);
+      }
+      this.lastSeenBranchId = responseBranchId;
+
+      return runValidation(eventProperties, spec);
+    } catch (e) {
+      if (AvoInspector._shouldLog) {
+        console.error(
+          "[Avo Inspector] Error during event spec validation:",
+          e
+        );
+      }
+      return null;
+    }
   }
 }

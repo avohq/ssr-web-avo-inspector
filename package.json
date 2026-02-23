@@ -62,6 +62,7 @@
   },
   "dependencies": {
     "localforage": "^1.10.0",
-    "localforage-driver-memory": "^1.0.5"
+    "localforage-driver-memory": "^1.0.5",
+    "safe-regex2": "^4.0.0"
   }
 }
