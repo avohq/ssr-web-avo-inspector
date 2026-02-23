@@ -17,6 +17,7 @@
   },
   "jest": {
     "testEnvironment": "jsdom",
+    "setupFiles": ["./jest.setup.js"],
     "transform": {
       "^.+\\.[j]sx?$": "babel-jest",
       "^.+\\.[t]sx?$": "ts-jest"
@@ -61,6 +62,7 @@
     "typescript": "*"
   },
   "dependencies": {
+    "@noble/curves": "^1.9.7",
     "localforage": "^1.10.0",
     "localforage-driver-memory": "^1.0.5",
     "safe-regex2": "^4.0.0"
