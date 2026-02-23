@@ -103,8 +103,7 @@ export class AvoNetworkCallsHandler {
       const newProp: EventProperty = { ...prop };
 
       // Skip list-type properties entirely
-      if (prop.propertyType === "list") {
-        result.push(newProp);
+      if (prop.propertyType === "list" || prop.propertyType.startsWith("list(")) {
         continue;
       }
 
