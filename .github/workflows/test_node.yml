@@ -5,6 +5,7 @@ on:
     types: [opened, reopened, unlocked, synchronize]
     paths:
       - 'src/**'
+      - '.github/workflows/**'
 
 jobs:
   test:
