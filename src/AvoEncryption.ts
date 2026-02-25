@@ -227,11 +227,17 @@ export async function encryptValue(value: any, publicKey: string): Promise<strin
  */
 export async function decryptValue(encryptedValue: string, privateKey: string): Promise<any> {
   try {
-    const binaryString = atob(encryptedValue)
-    const encryptedBuffer = new Uint8Array(binaryString.length)
-    for (let i = 0; i < binaryString.length; i++) {
-      encryptedBuffer[i] = binaryString.charCodeAt(i)
-    }
+    const encryptedBuffer =
+      typeof Buffer !== 'undefined' && Buffer.from
+        ? new Uint8Array(Buffer.from(encryptedValue, 'base64'))
+        : (() => {
+            const binaryString = atob(encryptedValue)
+            const buf = new Uint8Array(binaryString.length)
+            for (let i = 0; i < binaryString.length; i++) {
+              buf[i] = binaryString.charCodeAt(i)
+            }
+            return buf
+          })()
 
     if (encryptedBuffer.length < 67) {
       throw new Error('Invalid encrypted data: payload too short')
