@@ -308,8 +308,8 @@ function getOrParseAllowedValues(jsonString: string): Set<string> | null {
   let allowedSet = allowedValuesCache.get(jsonString);
   if (!allowedSet) {
     try {
-      const allowedArray: string[] = JSON.parse(jsonString);
-      allowedSet = new Set(allowedArray);
+      const allowedArray: unknown[] = JSON.parse(jsonString);
+      allowedSet = new Set(allowedArray.map((v) => String(v)));
       allowedValuesCache.set(jsonString, allowedSet);
     } catch (e) {
       // Invalid JSON - return null

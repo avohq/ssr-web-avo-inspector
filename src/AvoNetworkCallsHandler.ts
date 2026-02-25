@@ -277,7 +277,7 @@ export class AvoNetworkCallsHandler {
       createdAt: new Date().toISOString(),
       samplingRate: this.samplingRate,
     };
-    if (this.publicEncryptionKey && this.publicEncryptionKey.trim().length > 0) {
+    if (this.shouldEncrypt()) {
       body.publicEncryptionKey = this.publicEncryptionKey;
     }
     return body;

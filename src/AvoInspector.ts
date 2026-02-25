@@ -344,7 +344,7 @@ export class AvoInspector {
     }
 
     try {
-      // Determine stream ID for spec fetching (use apiKey as stream identifier)
+      // Determine stream ID for spec fetching (anonymous ID via AvoStreamId)
       const streamId = AvoStreamId.getAnonymousId();
 
       // Check cache first
