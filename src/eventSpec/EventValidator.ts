@@ -255,42 +255,24 @@ function getOrCompileRegex(pattern: string): RegExp | null {
 }
 
 /**
- * Tests a regex match with a 1-second timeout using Promise.race + clearTimeout.
- * The timer is cleared on regex completion to prevent timer accumulation.
- * Returns true if pattern matches, false if not or on timeout.
+ * Tests a regex match synchronously.
+ * Returns true if pattern matches, false if not or on error.
+ *
+ * Note: ReDoS protection relies on the safe-regex2 check in the caller
+ * (which rejects catastrophic-backtracking patterns before reaching here),
+ * not on a runtime timeout — JS regex execution is synchronous and cannot
+ * be interrupted by setTimeout.
  */
 async function testRegexWithTimeout(
   regex: RegExp,
   value: string,
-  timeoutMs: number = 1000
+  _timeoutMs: number = 1000
 ): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
-    let settled = false;
-    const timer = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        console.warn(
-          `[Avo Inspector] Warning: regex match timed out after ${timeoutMs}ms`
-        );
-        resolve(false);
-      }
-    }, timeoutMs);
-
-    try {
-      const result = regex.test(value);
-      if (!settled) {
-        settled = true;
-        clearTimeout(timer);
-        resolve(result);
-      }
-    } catch (e) {
-      if (!settled) {
-        settled = true;
-        clearTimeout(timer);
-        resolve(false);
-      }
-    }
-  });
+  try {
+    return regex.test(value);
+  } catch (e) {
+    return false;
+  }
 }
 
 /**
@@ -398,9 +380,9 @@ function collectConstraintsByPropertyName(
     return {};
   }
 
-  // Fast path: single event, return props directly (no aggregation needed)
+  // Fast path: single event (shallow copy to prevent mutation of cached spec)
   if (events.length === 1) {
-    return events[0].props;
+    return { ...events[0].props };
   }
 
   // Multiple events: aggregate constraints from all events

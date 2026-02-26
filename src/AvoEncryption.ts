@@ -142,10 +142,6 @@ export async function encryptValue(value: any, publicKey: string): Promise<strin
   try {
     const stringValue = value === undefined ? 'null' : JSON.stringify(value)
 
-    if (stringValue === undefined) {
-      throw new Error('Cannot encrypt undefined value')
-    }
-
     const publicKeyStr = typeof publicKey === 'string' ? publicKey : String(publicKey)
     const recipientPublicKeyBytes = hexToBytes(publicKeyStr)
 
