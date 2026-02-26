@@ -59,8 +59,10 @@ describe("NetworkCallsHandler", () => {
       env,
       libPlatform: "web",
       messageId: mockedReturns.GUID,
-      anonymousId: mockedReturns.ANONYMOUS_ID,
+      trackingId: "",
       createdAt: new Date().toISOString(),
+      sessionId: "",
+      streamId: mockedReturns.ANONYMOUS_ID,
       samplingRate: 1.0,
     };
   });

@@ -61,7 +61,7 @@ describe("Batcher", () => {
     );
   });
 
-  test("handleTrackSchema is called on trackSchemaFromEvent", () => {
+  test("event is sent immediately on trackSchemaFromEvent (with encryption path)", async () => {
     const eventName = "event name";
     const properties = {
       prop0: "",
@@ -70,21 +70,22 @@ describe("Batcher", () => {
       prop4: 0.0,
     };
 
+    const callImmediatelySpy = jest.spyOn(
+      (inspector as any).avoNetworkCallsHandler,
+      "callInspectorImmediately"
+    ).mockImplementation((_body: any, cb: any) => cb(null));
 
-    const schema = inspector.extractSchema(properties);
+    await inspector.trackSchemaFromEvent(eventName, properties);
 
-    inspector.trackSchemaFromEvent(eventName, properties);
+    expect(callImmediatelySpy).toHaveBeenCalledTimes(1);
+    const sentBody = callImmediatelySpy.mock.calls[0][0] as any;
+    expect(sentBody.eventName).toBe(eventName);
+    expect(sentBody.avoFunction).toBe(false);
 
-    expect(inspector.avoBatcher.handleTrackSchema).toHaveBeenCalledTimes(1);
-    expect(inspector.avoBatcher.handleTrackSchema).toBeCalledWith(
-      eventName,
-      schema,
-      null,
-      null
-    );
+    callImmediatelySpy.mockRestore();
   });
 
-  test("handleTrackSchema is called on _avoFunctionTrackSchemaFromEvent", () => {
+  test("event is sent immediately on _avoFunctionTrackSchemaFromEvent (with encryption path)", async () => {
     const eventName = "event name";
     const properties = {
       prop0: "",
@@ -95,18 +96,22 @@ describe("Batcher", () => {
     const eventId = "testId";
     const eventHash = "testHash";
 
-    const schema = inspector.extractSchema(properties);
+    const callImmediatelySpy = jest.spyOn(
+      (inspector as any).avoNetworkCallsHandler,
+      "callInspectorImmediately"
+    ).mockImplementation((_body: any, cb: any) => cb(null));
 
     // @ts-ignore
-    inspector._avoFunctionTrackSchemaFromEvent(eventName, properties, eventId, eventHash);
+    await inspector._avoFunctionTrackSchemaFromEvent(eventName, properties, eventId, eventHash);
 
-    expect(inspector.avoBatcher.handleTrackSchema).toHaveBeenCalledTimes(1);
-    expect(inspector.avoBatcher.handleTrackSchema).toBeCalledWith(
-      eventName,
-      schema,
-      eventId,
-      eventHash
-    );
+    expect(callImmediatelySpy).toHaveBeenCalledTimes(1);
+    const sentBody = callImmediatelySpy.mock.calls[0][0] as any;
+    expect(sentBody.eventName).toBe(eventName);
+    expect(sentBody.avoFunction).toBe(true);
+    expect(sentBody.eventId).toBe(eventId);
+    expect(sentBody.eventHash).toBe(eventHash);
+
+    callImmediatelySpy.mockRestore();
   });
 
   test("batchSize is updated", () => {

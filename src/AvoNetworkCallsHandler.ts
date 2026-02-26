@@ -2,12 +2,15 @@ import AvoGuid from "./AvoGuid";
 import { AvoStreamId } from "./AvoStreamId";
 import { AvoInspector } from "./AvoInspector";
 import { encryptValue } from "./AvoEncryption";
+import type { EventSpecMetadata } from "./eventSpec/AvoEventSpecFetchTypes";
 
 export interface EventProperty {
   propertyName: string;
   propertyType: string;
   encryptedPropertyValue?: string;
   children?: any;
+  failedEventIds?: string[];
+  passedEventIds?: string[];
 }
 
 export interface BaseBody {
@@ -18,8 +21,10 @@ export interface BaseBody {
   env: string;
   libPlatform: "web";
   messageId: string;
-  anonymousId: string;
+  trackingId: string;
   createdAt: string;
+  sessionId: string;
+  streamId: string;
   samplingRate: number;
   publicEncryptionKey?: string;
 }
@@ -35,6 +40,8 @@ export interface EventSchemaBody extends BaseBody {
   avoFunction: boolean;
   eventId: string | null;
   eventHash: string | null;
+  eventSpecMetadata?: EventSpecMetadata;
+  validatedBranchId?: string;
 }
 
 export class AvoNetworkCallsHandler {
@@ -108,7 +115,7 @@ export class AvoNetworkCallsHandler {
       }
 
       const value = eventValues[prop.propertyName];
-      if (value !== undefined) {
+      if (value != null) {
         try {
           newProp.encryptedPropertyValue = await encryptValue(
             value,
@@ -202,7 +209,9 @@ export class AvoNetworkCallsHandler {
       children?: any;
     }>,
     eventId: string | null,
-    eventHash: string | null
+    eventHash: string | null,
+    eventSpecMetadata?: EventSpecMetadata,
+    validatedBranchId?: string
   ): EventSchemaBody {
     let eventSchemaBody = this.createBaseCallBody() as EventSchemaBody;
     eventSchemaBody.type = "event";
@@ -217,6 +226,14 @@ export class AvoNetworkCallsHandler {
       eventSchemaBody.avoFunction = false;
       eventSchemaBody.eventId = null;
       eventSchemaBody.eventHash = null;
+    }
+
+    if (eventSpecMetadata) {
+      eventSchemaBody.eventSpecMetadata = eventSpecMetadata;
+    }
+
+    if (validatedBranchId) {
+      eventSchemaBody.validatedBranchId = validatedBranchId;
     }
 
     return eventSchemaBody;
@@ -264,6 +281,48 @@ export class AvoNetworkCallsHandler {
     return eventSchemaBody;
   }
 
+  /**
+   * Calls Inspector API immediately with a single event (bypasses batching).
+   * Used when event spec validation is available.
+   * Note: Does not drop due to sampling - validated events are always sent.
+   */
+  callInspectorImmediately(
+    eventBody: EventSchemaBody,
+    onCompleted: (error: string | null) => any
+  ): void {
+    if (AvoInspector.shouldLog) {
+      console.log(
+        "Avo Inspector: calling inspector immediately (with validation)",
+        eventBody.eventName
+      );
+      console.log("Avo Inspector: event body", eventBody);
+    }
+
+    fetch(AvoNetworkCallsHandler.trackingEndpoint, {
+      headers: { "Content-Type": "text/plain" },
+      method: "POST",
+      body: JSON.stringify([eventBody]),
+    })
+      .then((response) => {
+        if (response.status !== 200) {
+          onCompleted(`Error ${response.status}: ${response.statusText}`);
+        } else {
+          response.json().then((data) => {
+            const samplingRate = data["samplingRate"];
+            if (samplingRate !== undefined) {
+              this.samplingRate = samplingRate;
+            }
+            onCompleted(null);
+          });
+        }
+      })
+      .catch((error) => {
+        onCompleted(
+          error instanceof Error ? error.message : String(error)
+        );
+      });
+  }
+
   private createBaseCallBody(): BaseBody {
     const body: BaseBody = {
       apiKey: this.apiKey,
@@ -273,8 +332,10 @@ export class AvoNetworkCallsHandler {
       env: this.envName,
       libPlatform: "web",
       messageId: AvoGuid.newGuid(),
-      anonymousId: AvoStreamId.getAnonymousId(),
+      trackingId: "",
       createdAt: new Date().toISOString(),
+      sessionId: "",
+      streamId: AvoStreamId.getAnonymousId(),
       samplingRate: this.samplingRate,
     };
     if (this.shouldEncrypt()) {

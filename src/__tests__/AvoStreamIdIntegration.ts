@@ -46,12 +46,14 @@ describe("AvoStreamId integration with AvoNetworkCallsHandler", () => {
     jest.restoreAllMocks();
   });
 
-  test("BaseBody contains anonymousId, not sessionId or trackingId", () => {
+  test("BaseBody contains streamId, sessionId, and trackingId", () => {
     const body = networkHandler.bodyForSessionStartedCall();
 
-    expect(body).toHaveProperty("anonymousId");
-    expect(body).not.toHaveProperty("sessionId");
-    expect(body).not.toHaveProperty("trackingId");
+    expect(body).toHaveProperty("streamId");
+    expect(body).toHaveProperty("sessionId");
+    expect(body).toHaveProperty("trackingId");
+    expect(body.sessionId).toBe("");
+    expect(body.trackingId).toBe("");
   });
 
   test("BaseBody has libPlatform set to 'web'", () => {
@@ -60,8 +62,10 @@ describe("AvoStreamId integration with AvoNetworkCallsHandler", () => {
     expect(body.libPlatform).toBe("web");
   });
 
-  test("fixSessionAndTrackingIds method does NOT exist", () => {
-    expect((networkHandler as any).fixSessionAndTrackingIds).toBeUndefined();
+  test("sessionId and trackingId are empty strings", () => {
+    const body = networkHandler.bodyForSessionStartedCall();
+    expect(body.sessionId).toBe("");
+    expect(body.trackingId).toBe("");
   });
 
   test("AvoInspector does not have sessionTracker", () => {
@@ -71,8 +75,8 @@ describe("AvoStreamId integration with AvoNetworkCallsHandler", () => {
     expect((inspector as any).sessionTracker).toBeUndefined();
   });
 
-  test("anonymousId in BaseBody comes from AvoStreamId", () => {
+  test("streamId in BaseBody comes from AvoStreamId", () => {
     const body = networkHandler.bodyForSessionStartedCall();
-    expect(body.anonymousId).toBe(mockedReturns.ANONYMOUS_ID);
+    expect(body.streamId).toBe(mockedReturns.ANONYMOUS_ID);
   });
 });
