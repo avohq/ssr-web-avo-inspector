@@ -209,9 +209,7 @@ export class AvoNetworkCallsHandler {
       children?: any;
     }>,
     eventId: string | null,
-    eventHash: string | null,
-    eventSpecMetadata?: EventSpecMetadata,
-    validatedBranchId?: string
+    eventHash: string | null
   ): EventSchemaBody {
     let eventSchemaBody = this.createBaseCallBody() as EventSchemaBody;
     eventSchemaBody.type = "event";
@@ -226,14 +224,6 @@ export class AvoNetworkCallsHandler {
       eventSchemaBody.avoFunction = false;
       eventSchemaBody.eventId = null;
       eventSchemaBody.eventHash = null;
-    }
-
-    if (eventSpecMetadata) {
-      eventSchemaBody.eventSpecMetadata = eventSpecMetadata;
-    }
-
-    if (validatedBranchId) {
-      eventSchemaBody.validatedBranchId = validatedBranchId;
     }
 
     return eventSchemaBody;
@@ -312,6 +302,9 @@ export class AvoNetworkCallsHandler {
             if (samplingRate !== undefined) {
               this.samplingRate = samplingRate;
             }
+            onCompleted(null);
+          }).catch(() => {
+            // Non-JSON response body — treat as success (event was accepted)
             onCompleted(null);
           });
         }

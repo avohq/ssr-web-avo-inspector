@@ -193,6 +193,54 @@ describe("AvoNetworkCallsHandler - Encryption", () => {
     });
   });
 
+  describe("Null and undefined property values", () => {
+    test("null property values should NOT get encryptedPropertyValue", async () => {
+      const handler = new AvoNetworkCallsHandler(
+        "key", "dev", "", "1.0", inspectorVersion, realKeyPair.publicKey
+      );
+
+      const props = [
+        { propertyName: "name", propertyType: "string" },
+        { propertyName: "nickname", propertyType: "null" },
+      ];
+      const body = await handler.bodyForValidatedEventSchemaCall(
+        "testEvent", props, null, null,
+        { name: "John", nickname: null }
+      );
+      const nameProp = body.eventProperties.find(
+        (p: any) => p.propertyName === "name"
+      );
+      const nicknameProp = body.eventProperties.find(
+        (p: any) => p.propertyName === "nickname"
+      );
+      expect(nameProp?.encryptedPropertyValue).toBeDefined();
+      expect(nicknameProp?.encryptedPropertyValue).toBeUndefined();
+    });
+
+    test("undefined property values should NOT get encryptedPropertyValue", async () => {
+      const handler = new AvoNetworkCallsHandler(
+        "key", "dev", "", "1.0", inspectorVersion, realKeyPair.publicKey
+      );
+
+      const props = [
+        { propertyName: "name", propertyType: "string" },
+        { propertyName: "missing", propertyType: "string" },
+      ];
+      const body = await handler.bodyForValidatedEventSchemaCall(
+        "testEvent", props, null, null,
+        { name: "John" } // "missing" is not in event values
+      );
+      const nameProp = body.eventProperties.find(
+        (p: any) => p.propertyName === "name"
+      );
+      const missingProp = body.eventProperties.find(
+        (p: any) => p.propertyName === "missing"
+      );
+      expect(nameProp?.encryptedPropertyValue).toBeDefined();
+      expect(missingProp?.encryptedPropertyValue).toBeUndefined();
+    });
+  });
+
   describe("Encryption failure handling", () => {
     test("on encryption failure: console.warn, omit property value, continue", async () => {
       const handler = new AvoNetworkCallsHandler(

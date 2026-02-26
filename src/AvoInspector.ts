@@ -8,7 +8,7 @@ import { AvoStreamId } from "./AvoStreamId";
 import { AvoEventSpecFetcher } from "./eventSpec/AvoEventSpecFetcher";
 import { EventSpecCache } from "./eventSpec/AvoEventSpecCache";
 import { validateEvent as runValidation } from "./eventSpec/EventValidator";
-import type { ValidationResult, EventSpecMetadata, PropertyValidationResult, EventSpecResponse } from "./eventSpec/AvoEventSpecFetchTypes";
+import type { ValidationResult, PropertyValidationResult } from "./eventSpec/AvoEventSpecFetchTypes";
 
 import { isValueEmpty } from "./utils";
 
@@ -154,7 +154,7 @@ export class AvoInspector {
         let eventSchema = this.extractSchema(eventProperties, false);
 
         // Fetch and validate event spec (blocking)
-        const validationResult = await this.fetchAndValidateEvent(
+        const validationResult = await this.validateEvent(
           eventName,
           eventProperties
         );
@@ -223,7 +223,7 @@ export class AvoInspector {
         let eventSchema = this.extractSchema(eventProperties, false);
 
         // Fetch and validate event spec (blocking)
-        const validationResult = await this.fetchAndValidateEvent(
+        const validationResult = await this.validateEvent(
           eventName,
           eventProperties
         );
@@ -312,8 +312,12 @@ export class AvoInspector {
     eventProperties?: { [propName: string]: any }
   ): Promise<void> {
     try {
-      // If we have event properties and encryption is enabled, encrypt and send immediately
-      if (eventProperties) {
+      // In dev/staging: if we have event properties, encrypt and send immediately (bypass batching/sampling)
+      const isDevOrStaging =
+        this.environment === AvoInspectorEnv.Dev ||
+        this.environment === AvoInspectorEnv.Staging;
+
+      if (isDevOrStaging && eventProperties) {
         const eventBody = await this.avoNetworkCallsHandler.bodyForValidatedEventSchemaCall(
           eventName,
           eventSchema as EventProperty[],
@@ -330,6 +334,7 @@ export class AvoInspector {
         return;
       }
 
+      // Production or no event properties: use normal batched flow (respects sampling)
       this.avoBatcher.handleTrackSchema(
         eventName,
         eventSchema,
@@ -418,7 +423,6 @@ export class AvoInspector {
     }
 
     try {
-      // Determine stream ID for spec fetching (anonymous ID via AvoStreamId)
       const streamId = AvoStreamId.getAnonymousId();
 
       // Check cache first
@@ -426,77 +430,6 @@ export class AvoInspector {
       if (cachedSpec !== undefined) {
         // Cache hit - cachedSpec is either EventSpecResponse or null (known absent)
         if (cachedSpec === null) {
-          return null;
-        }
-        return runValidation(eventProperties, cachedSpec);
-      }
-
-      // Cache miss - fetch the spec
-      const spec = await this.eventSpecFetcher.fetch({
-        apiKey: this.apiKey,
-        streamId,
-        eventName,
-      });
-
-      // Cache the result (including null for known-absent specs)
-      this.eventSpecCache.set(this.apiKey, streamId, eventName, spec);
-
-      if (spec === null) {
-        return null;
-      }
-
-      // Check for branchId change and flush cache if needed
-      const responseBranchId = spec.metadata.branchId;
-      if (this.lastSeenBranchId !== null && this.lastSeenBranchId !== responseBranchId) {
-        if (AvoInspector._shouldLog) {
-          console.log(
-            `[Avo Inspector] Branch ID changed from ${this.lastSeenBranchId} to ${responseBranchId}. Flushing event spec cache.`
-          );
-        }
-        this.eventSpecCache.clear();
-        // Re-cache the current spec after flush
-        this.eventSpecCache.set(this.apiKey, streamId, eventName, spec);
-      }
-      this.lastSeenBranchId = responseBranchId;
-
-      return runValidation(eventProperties, spec);
-    } catch (e) {
-      if (AvoInspector._shouldLog) {
-        console.error(
-          "[Avo Inspector] Error during event spec validation:",
-          e
-        );
-      }
-      return null;
-    }
-  }
-
-  /**
-   * Fetches event spec and validates the event against it.
-   * Returns ValidationResult if spec is available, null otherwise.
-   *
-   * Note: EventSpec fetching and validation only happens in dev/staging environments.
-   */
-  private async fetchAndValidateEvent(
-    eventName: string,
-    eventProperties: { [propName: string]: any }
-  ): Promise<ValidationResult | null> {
-    // Only fetch specs in dev/staging environments (NOT in production)
-    if (
-      this.environment !== AvoInspectorEnv.Dev &&
-      this.environment !== AvoInspectorEnv.Staging
-    ) {
-      return null;
-    }
-
-    try {
-      const streamId = AvoStreamId.getAnonymousId();
-
-      // Check cache first
-      const cachedSpec = this.eventSpecCache.get(this.apiKey, streamId, eventName);
-      if (cachedSpec !== undefined) {
-        if (cachedSpec === null) {
-          // Cached empty response - no spec exists for this event
           if (AvoInspector.shouldLog) {
             console.log(
               `[Avo Inspector] Cache hit (empty) for event: ${eventName}. Sending without validation.`
@@ -512,30 +445,30 @@ export class AvoInspector {
         return runValidation(eventProperties, cachedSpec);
       }
 
-      // Cache miss - fetch from API (blocking)
-      const specResponse = await this.eventSpecFetcher.fetch({
+      // Cache miss - fetch the spec
+      const spec = await this.eventSpecFetcher.fetch({
         apiKey: this.apiKey,
         streamId,
         eventName,
       });
 
-      if (specResponse) {
-        // Check for branch change
-        const newBranchId = specResponse.metadata.branchId;
-        if (this.lastSeenBranchId !== null && this.lastSeenBranchId !== newBranchId) {
+      if (spec) {
+        // Check for branchId change and flush cache if needed
+        const responseBranchId = spec.metadata.branchId;
+        if (this.lastSeenBranchId !== null && this.lastSeenBranchId !== responseBranchId) {
           if (AvoInspector.shouldLog) {
             console.log(
-              `[Avo Inspector] Branch changed from ${this.lastSeenBranchId} to ${newBranchId}. Flushing cache.`
+              `[Avo Inspector] Branch ID changed from ${this.lastSeenBranchId} to ${responseBranchId}. Flushing event spec cache.`
             );
           }
           this.eventSpecCache.clear();
         }
-        this.lastSeenBranchId = newBranchId;
+        this.lastSeenBranchId = responseBranchId;
 
-        // Store in cache
-        this.eventSpecCache.set(this.apiKey, streamId, eventName, specResponse);
+        // Cache the result after branch check (so flush doesn't lose it)
+        this.eventSpecCache.set(this.apiKey, streamId, eventName, spec);
 
-        return runValidation(eventProperties, specResponse);
+        return runValidation(eventProperties, spec);
       } else {
         // Cache the empty response so we don't re-fetch
         this.eventSpecCache.set(this.apiKey, streamId, eventName, null);
@@ -546,12 +479,11 @@ export class AvoInspector {
         }
         return null;
       }
-    } catch (error) {
-      // Graceful degradation - log but don't fail
+    } catch (e) {
       if (AvoInspector.shouldLog) {
         console.error(
-          `[Avo Inspector] Error validating event ${eventName}:`,
-          error
+          "[Avo Inspector] Error during event spec validation:",
+          e
         );
       }
       return null;

@@ -1,5 +1,6 @@
 import { AvoBatcher } from "../AvoBatcher";
 import { AvoInspector } from "../AvoInspector";
+import { AvoInspectorEnv } from "../AvoInspectorEnv";
 import { AvoNetworkCallsHandler } from "../AvoNetworkCallsHandler";
 
 import { defaultOptions } from "./constants";
@@ -61,57 +62,118 @@ describe("Batcher", () => {
     );
   });
 
-  test("event is sent immediately on trackSchemaFromEvent (with encryption path)", async () => {
-    const eventName = "event name";
-    const properties = {
-      prop0: "",
-      prop2: false,
-      prop3: 0,
-      prop4: 0.0,
-    };
+  describe("dev/staging: immediate send path", () => {
+    let devInspector: AvoInspector;
 
-    const callImmediatelySpy = jest.spyOn(
-      (inspector as any).avoNetworkCallsHandler,
-      "callInspectorImmediately"
-    ).mockImplementation((_body: any, cb: any) => cb(null));
+    beforeEach(() => {
+      devInspector = new AvoInspector({
+        apiKey: "api-key-xxx",
+        env: AvoInspectorEnv.Dev,
+        version: "1",
+      });
+      devInspector.enableLogging(false);
+    });
 
-    await inspector.trackSchemaFromEvent(eventName, properties);
+    afterEach(() => {
+      // @ts-ignore
+      devInspector.avoDeduplicator._clearEvents();
+    });
 
-    expect(callImmediatelySpy).toHaveBeenCalledTimes(1);
-    const sentBody = callImmediatelySpy.mock.calls[0][0] as any;
-    expect(sentBody.eventName).toBe(eventName);
-    expect(sentBody.avoFunction).toBe(false);
+    test("event is sent immediately on trackSchemaFromEvent", async () => {
+      const eventName = "event name";
+      const properties = {
+        prop0: "",
+        prop2: false,
+        prop3: 0,
+        prop4: 0.0,
+      };
 
-    callImmediatelySpy.mockRestore();
+      const callImmediatelySpy = jest.spyOn(
+        (devInspector as any).avoNetworkCallsHandler,
+        "callInspectorImmediately"
+      ).mockImplementation((_body: any, cb: any) => cb(null));
+
+      await devInspector.trackSchemaFromEvent(eventName, properties);
+
+      expect(callImmediatelySpy).toHaveBeenCalledTimes(1);
+      const sentBody = callImmediatelySpy.mock.calls[0][0] as any;
+      expect(sentBody.eventName).toBe(eventName);
+      expect(sentBody.avoFunction).toBe(false);
+
+      callImmediatelySpy.mockRestore();
+    });
+
+    test("event is sent immediately on _avoFunctionTrackSchemaFromEvent", async () => {
+      const eventName = "event name";
+      const properties = {
+        prop0: "",
+        prop2: false,
+        prop3: 0,
+        prop4: 0.0,
+      };
+      const eventId = "testId";
+      const eventHash = "testHash";
+
+      const callImmediatelySpy = jest.spyOn(
+        (devInspector as any).avoNetworkCallsHandler,
+        "callInspectorImmediately"
+      ).mockImplementation((_body: any, cb: any) => cb(null));
+
+      // @ts-ignore
+      await devInspector._avoFunctionTrackSchemaFromEvent(eventName, properties, eventId, eventHash);
+
+      expect(callImmediatelySpy).toHaveBeenCalledTimes(1);
+      const sentBody = callImmediatelySpy.mock.calls[0][0] as any;
+      expect(sentBody.eventName).toBe(eventName);
+      expect(sentBody.avoFunction).toBe(true);
+      expect(sentBody.eventId).toBe(eventId);
+      expect(sentBody.eventHash).toBe(eventHash);
+
+      callImmediatelySpy.mockRestore();
+    });
   });
 
-  test("event is sent immediately on _avoFunctionTrackSchemaFromEvent (with encryption path)", async () => {
-    const eventName = "event name";
-    const properties = {
-      prop0: "",
-      prop2: false,
-      prop3: 0,
-      prop4: 0.0,
-    };
-    const eventId = "testId";
-    const eventHash = "testHash";
+  describe("prod: batched send path", () => {
+    test("trackSchemaFromEvent uses batcher in prod", async () => {
+      const eventName = "event name";
+      const properties = {
+        prop0: "",
+        prop2: false,
+      };
 
-    const callImmediatelySpy = jest.spyOn(
-      (inspector as any).avoNetworkCallsHandler,
-      "callInspectorImmediately"
-    ).mockImplementation((_body: any, cb: any) => cb(null));
+      const callImmediatelySpy = jest.spyOn(
+        (inspector as any).avoNetworkCallsHandler,
+        "callInspectorImmediately"
+      );
 
-    // @ts-ignore
-    await inspector._avoFunctionTrackSchemaFromEvent(eventName, properties, eventId, eventHash);
+      await inspector.trackSchemaFromEvent(eventName, properties);
 
-    expect(callImmediatelySpy).toHaveBeenCalledTimes(1);
-    const sentBody = callImmediatelySpy.mock.calls[0][0] as any;
-    expect(sentBody.eventName).toBe(eventName);
-    expect(sentBody.avoFunction).toBe(true);
-    expect(sentBody.eventId).toBe(eventId);
-    expect(sentBody.eventHash).toBe(eventHash);
+      expect(callImmediatelySpy).not.toHaveBeenCalled();
+      expect(inspector.avoBatcher.handleTrackSchema).toHaveBeenCalledTimes(1);
 
-    callImmediatelySpy.mockRestore();
+      callImmediatelySpy.mockRestore();
+    });
+
+    test("_avoFunctionTrackSchemaFromEvent uses batcher in prod", async () => {
+      const eventName = "event name";
+      const properties = {
+        prop0: "",
+        prop2: false,
+      };
+
+      const callImmediatelySpy = jest.spyOn(
+        (inspector as any).avoNetworkCallsHandler,
+        "callInspectorImmediately"
+      );
+
+      // @ts-ignore
+      await inspector._avoFunctionTrackSchemaFromEvent(eventName, properties, "testId", "testHash");
+
+      expect(callImmediatelySpy).not.toHaveBeenCalled();
+      expect(inspector.avoBatcher.handleTrackSchema).toHaveBeenCalledTimes(1);
+
+      callImmediatelySpy.mockRestore();
+    });
   });
 
   test("batchSize is updated", () => {
