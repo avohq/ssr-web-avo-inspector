@@ -452,6 +452,16 @@ export class AvoInspector {
         eventName,
       });
 
+      // Transient error (network, timeout, parse failure) — don't cache, retry next time
+      if (spec === "transient_error") {
+        if (AvoInspector.shouldLog) {
+          console.log(
+            `[Avo Inspector] Transient error fetching event spec for: ${eventName}. Will retry next time.`
+          );
+        }
+        return null;
+      }
+
       if (spec) {
         // Check for branchId change and flush cache if needed
         const responseBranchId = spec.metadata.branchId;
@@ -470,11 +480,11 @@ export class AvoInspector {
 
         return runValidation(eventProperties, spec);
       } else {
-        // Cache the empty response so we don't re-fetch
+        // Event definitively not found — cache so we don't re-fetch
         this.eventSpecCache.set(this.apiKey, streamId, eventName, null);
         if (AvoInspector.shouldLog) {
           console.log(
-            `[Avo Inspector] Event spec fetch returned null for event: ${eventName}. Cached empty response.`
+            `[Avo Inspector] Event not found in tracking plan: ${eventName}. Cached empty response.`
           );
         }
         return null;

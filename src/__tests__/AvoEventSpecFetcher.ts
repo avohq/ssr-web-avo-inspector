@@ -1,4 +1,5 @@
 import { AvoEventSpecFetcher } from "../eventSpec/AvoEventSpecFetcher";
+import type { EventSpecResponse } from "../eventSpec/AvoEventSpecFetchTypes";
 
 // Mock global fetch
 const mockFetch = jest.fn();
@@ -57,15 +58,17 @@ describe("AvoEventSpecFetcher", () => {
     });
 
     expect(result).not.toBeNull();
-    expect(result!.events[0].branchId).toBe("branch1");
-    expect(result!.events[0].baseEventId).toBe("evt_1");
-    expect(result!.events[0].variantIds).toEqual(["var_1"]);
-    expect(result!.events[0].props.method.type).toBe("string");
-    expect(result!.events[0].props.method.required).toBe(true);
-    expect(result!.events[0].props.method.pinnedValues).toEqual({
+    expect(result).not.toBe("transient_error");
+    const spec = result as EventSpecResponse;
+    expect(spec.events[0].branchId).toBe("branch1");
+    expect(spec.events[0].baseEventId).toBe("evt_1");
+    expect(spec.events[0].variantIds).toEqual(["var_1"]);
+    expect(spec.events[0].props.method.type).toBe("string");
+    expect(spec.events[0].props.method.required).toBe(true);
+    expect(spec.events[0].props.method.pinnedValues).toEqual({
       email: ["evt_1"],
     });
-    expect(result!.metadata.schemaId).toBe("schema1");
+    expect(spec.metadata.schemaId).toBe("schema1");
   });
 
   test("builds correct URL with query parameters", async () => {
@@ -90,7 +93,7 @@ describe("AvoEventSpecFetcher", () => {
     expect(url).toContain("eventName=Sign+Up");
   });
 
-  test("returns null on non-200 status", async () => {
+  test("returns transient_error on non-200 status", async () => {
     mockFetch.mockResolvedValue({
       status: 404,
       json: async () => ({}),
@@ -101,10 +104,10 @@ describe("AvoEventSpecFetcher", () => {
       streamId: "stream",
       eventName: "test",
     });
-    expect(result).toBeNull();
+    expect(result).toBe("transient_error");
   });
 
-  test("returns null on invalid response shape", async () => {
+  test("returns transient_error on invalid response shape", async () => {
     mockFetch.mockResolvedValue({
       status: 200,
       json: async () => ({ invalid: true }),
@@ -115,10 +118,10 @@ describe("AvoEventSpecFetcher", () => {
       streamId: "stream",
       eventName: "test",
     });
-    expect(result).toBeNull();
+    expect(result).toBe("transient_error");
   });
 
-  test("returns null on network error", async () => {
+  test("returns transient_error on network error", async () => {
     mockFetch.mockRejectedValue(new Error("Network error"));
 
     const result = await fetcher.fetch({
@@ -126,10 +129,10 @@ describe("AvoEventSpecFetcher", () => {
       streamId: "stream",
       eventName: "test",
     });
-    expect(result).toBeNull();
+    expect(result).toBe("transient_error");
   });
 
-  test("returns null on JSON parse error", async () => {
+  test("returns transient_error on JSON parse error", async () => {
     mockFetch.mockResolvedValue({
       status: 200,
       json: async () => {
@@ -141,6 +144,20 @@ describe("AvoEventSpecFetcher", () => {
       apiKey: "key",
       streamId: "stream",
       eventName: "test",
+    });
+    expect(result).toBe("transient_error");
+  });
+
+  test("returns null (cacheable) on event_not_found response", async () => {
+    mockFetch.mockResolvedValue({
+      status: 200,
+      json: async () => ({ error: "event_not_found", name: "Unknown Event" }),
+    });
+
+    const result = await fetcher.fetch({
+      apiKey: "key",
+      streamId: "stream",
+      eventName: "Unknown Event",
     });
     expect(result).toBeNull();
   });
@@ -192,8 +209,8 @@ describe("AvoEventSpecFetcher", () => {
 
     const [result1, result2] = await Promise.all([promise1, promise2]);
 
-    expect(result1).toBeNull();
-    expect(result2).toBeNull();
+    expect(result1).toBe("transient_error");
+    expect(result2).toBe("transient_error");
   });
 
   test("works in staging environment", async () => {
@@ -266,7 +283,8 @@ describe("AvoEventSpecFetcher", () => {
     });
 
     expect(result).not.toBeNull();
-    const props = result!.events[0].props;
+    expect(result).not.toBe("transient_error");
+    const props = (result as EventSpecResponse).events[0].props;
 
     expect(props.name.regexPatterns).toEqual({ "^[A-Z]": ["evt_1"] });
     expect(props.name.allowedValues).toEqual({

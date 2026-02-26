@@ -23,7 +23,7 @@ export class AvoEventSpecFetcher {
   /** Network timeout in milliseconds */
   private readonly timeout: number;
   /** In-flight requests to prevent duplicate fetches */
-  private inFlightRequests: Map<string, Promise<EventSpecResponse | null>>;
+  private inFlightRequests: Map<string, Promise<EventSpecResponse | null | "transient_error">>;
   /** Whether to log debug information */
   private readonly shouldLog: boolean;
   /** Environment name */
@@ -57,25 +57,28 @@ export class AvoEventSpecFetcher {
    * - The request times out
    *
    * This method gracefully degrades - failures do not throw errors.
-   * When null is returned, validation is skipped for that event.
+   * Returns:
+   * - EventSpecResponse: valid spec found
+   * - null: event definitively not found (safe to cache)
+   * - "transient_error": network/timeout/parse failure (do NOT cache)
    *
    * In-flight de-duplication: concurrent requests for the same key
-   * share a single fetch promise. On failure, all waiters receive null.
+   * share a single fetch promise. On failure, all waiters receive the same result.
    */
-  async fetch(params: FetchEventSpecParams): Promise<EventSpecResponse | null> {
+  async fetch(params: FetchEventSpecParams): Promise<EventSpecResponse | null | "transient_error"> {
     const requestKey: string = this.generateRequestKey(params);
     // Check if there's already an in-flight request for this spec
-    const existingRequest: Promise<EventSpecResponse | null> | undefined =
+    const existingRequest: Promise<EventSpecResponse | null | "transient_error"> | undefined =
       this.inFlightRequests.get(requestKey);
     if (existingRequest) {
       return existingRequest;
     }
     // Create and track the new request
-    const requestPromise: Promise<EventSpecResponse | null> =
+    const requestPromise: Promise<EventSpecResponse | null | "transient_error"> =
       this.fetchInternal(params);
     this.inFlightRequests.set(requestKey, requestPromise);
     try {
-      const result: EventSpecResponse | null = await requestPromise;
+      const result: EventSpecResponse | null | "transient_error" = await requestPromise;
       return result;
     } finally {
       // Clean up the in-flight request tracking
@@ -86,7 +89,7 @@ export class AvoEventSpecFetcher {
   /** Internal fetch implementation. */
   private async fetchInternal(
     params: FetchEventSpecParams
-  ): Promise<EventSpecResponse | null> {
+  ): Promise<EventSpecResponse | null | "transient_error"> {
     if (!(this.env === "dev" || this.env === "staging")) {
       return null;
     }
@@ -101,6 +104,15 @@ export class AvoEventSpecFetcher {
             `[Avo Inspector] Failed to fetch event spec for: ${params.eventName}`
           );
         }
+        return "transient_error";
+      }
+      // Check for explicit "event not found" response from API
+      if (this.isEventNotFound(wireResponse)) {
+        if (this.shouldLog) {
+          console.log(
+            `[Avo Inspector] Event not found in tracking plan: ${params.eventName}`
+          );
+        }
         return null;
       }
       // Basic structure check for wire format
@@ -110,7 +122,7 @@ export class AvoEventSpecFetcher {
             `[Avo Inspector] Invalid event spec response for: ${params.eventName}`
           );
         }
-        return null;
+        return "transient_error";
       }
       // Parse wire format to internal format
       const response: EventSpecResponse =
@@ -123,8 +135,17 @@ export class AvoEventSpecFetcher {
           error
         );
       }
-      return null;
+      return "transient_error";
     }
+  }
+
+  /** Checks if the API response is an explicit "event not found" response. */
+  private isEventNotFound(response: any): boolean {
+    return (
+      response &&
+      typeof response === "object" &&
+      response.error === "event_not_found"
+    );
   }
 
   /** Builds the complete URL with query parameters. */

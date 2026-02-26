@@ -107,10 +107,11 @@ describe("AvoInspector Event Spec Validation Pipeline", () => {
     expect(result).toBeNull();
   });
 
-  test("validateEvent returns null when spec response is null (cached null)", async () => {
-    // Return null response (no spec found)
+  test("validateEvent returns null on transient error (non-200 status) without caching", async () => {
+    let fetchCount = 0;
     mockFetch.mockImplementation((url: string) => {
       if (url.includes("eventSpec")) {
+        fetchCount++;
         return Promise.resolve({
           status: 404,
           json: async () => ({}),
@@ -130,6 +131,42 @@ describe("AvoInspector Event Spec Validation Pipeline", () => {
 
     const result = await inspector.validateEvent("testEvent", { method: "email" });
     expect(result).toBeNull();
+
+    // Call again — should NOT be cached, so fetcher is called again
+    const result2 = await inspector.validateEvent("testEvent", { method: "email" });
+    expect(result2).toBeNull();
+    expect(fetchCount).toBe(2);
+  });
+
+  test("validateEvent returns null and caches when event_not_found", async () => {
+    let fetchCount = 0;
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("eventSpec")) {
+        fetchCount++;
+        return Promise.resolve({
+          status: 200,
+          json: async () => ({ error: "event_not_found", name: "testEvent" }),
+        });
+      }
+      return Promise.resolve({
+        status: 200,
+        json: async () => ({ samplingRate: 1 }),
+      });
+    });
+
+    const inspector = new AvoInspector({
+      apiKey: "test-api-key",
+      env: AvoInspectorEnv.Dev,
+      version: "1.0",
+    });
+
+    const result = await inspector.validateEvent("testEvent", { method: "email" });
+    expect(result).toBeNull();
+
+    // Call again — should be cached, so fetcher is NOT called again
+    const result2 = await inspector.validateEvent("testEvent", { method: "email" });
+    expect(result2).toBeNull();
+    expect(fetchCount).toBe(1);
   });
 
   test("validateEvent works in staging environment", async () => {
