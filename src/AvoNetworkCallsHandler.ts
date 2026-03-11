@@ -190,9 +190,11 @@ export class AvoNetworkCallsHandler {
           onCompleted(null);
         });
       }
+    }).catch((error) => {
+      onCompleted(error instanceof Error ? error.message : String(error));
+    }).finally(() => {
+      this.sending = false;
     });
-
-    this.sending = false;
   }
 
   bodyForSessionStartedCall(): SessionStartedBody {
