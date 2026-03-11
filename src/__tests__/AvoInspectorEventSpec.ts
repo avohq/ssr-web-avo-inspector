@@ -5,6 +5,7 @@
  */
 import { AvoInspector } from "../AvoInspector";
 import { AvoInspectorEnv } from "../AvoInspectorEnv";
+import { AvoStreamId } from "../AvoStreamId";
 
 // Mock global fetch
 const mockFetch = jest.fn();
@@ -35,8 +36,15 @@ function makeValidWireResponse(eventName: string = "testEvent") {
 }
 
 describe("AvoInspector Event Spec Validation Pipeline", () => {
+  let streamIdSpy: jest.SpyInstance;
+
   beforeEach(() => {
     mockFetch.mockReset();
+    streamIdSpy = jest.spyOn(AvoStreamId, "getAnonymousId").mockReturnValue("test-stream-id");
+  });
+
+  afterEach(() => {
+    streamIdSpy.mockRestore();
   });
 
   test("validateEvent returns null in prod environment (no spec fetch)", async () => {

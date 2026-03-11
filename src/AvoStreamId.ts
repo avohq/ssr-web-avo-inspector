@@ -13,9 +13,10 @@ export class AvoStreamId {
    *   - age > 4 hours (time since creation)
    *   - idle > 2 hours (time since last activity)
    *
-   * Returns 'unknown' if AvoInspector.avoStorage is not initialized.
+   * Returns null if AvoInspector.avoStorage is not initialized (caller
+   * should omit streamId so the event is treated as a "wild event").
    */
-  static getAnonymousId(): string {
+  static getAnonymousId(): string | null {
     const now = Date.now();
 
     // If we have a cached in-memory ID, check if it needs reset
@@ -28,9 +29,9 @@ export class AvoStreamId {
       return AvoStreamId._anonymousId as string;
     }
 
-    // Return 'unknown' if storage is not initialized
+    // Storage not ready — return null so callers omit streamId (wild event)
     if (!AvoStreamId.storageAvailable()) {
-      return "unknown";
+      return null;
     }
 
     // Try to load from storage

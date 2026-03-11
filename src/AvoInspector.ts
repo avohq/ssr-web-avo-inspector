@@ -398,6 +398,11 @@ export class AvoInspector {
     try {
       const streamId = AvoStreamId.getAnonymousId();
 
+      // No stream ID (storage not ready) — skip validation, send as wild event
+      if (streamId === null) {
+        return null;
+      }
+
       // Check cache first
       const cachedSpec = this.eventSpecCache.get(this.apiKey, streamId, eventName);
       if (cachedSpec !== undefined) {

@@ -35,14 +35,14 @@ describe("AvoStreamId", () => {
   });
 
   describe("getAnonymousId", () => {
-    test('returns "unknown" when avoStorage is not initialized and no cached ID', () => {
+    test("returns null when avoStorage is not initialized and no cached ID", () => {
       // Force storage to appear uninitialized
       (AvoInspector.avoStorage.storageImpl as any).storageInitialized = false;
       AvoStreamId["_anonymousId"] = null;
 
       const result = AvoStreamId.getAnonymousId();
 
-      expect(result).toBe("unknown");
+      expect(result).toBeNull();
     });
 
     test("returns cached ID even when avoStorage is not initialized", () => {
@@ -69,7 +69,7 @@ describe("AvoStreamId", () => {
       expect(id).not.toBeNull();
       expect(id).not.toBe("unknown");
       expect(typeof id).toBe("string");
-      expect(id.length).toBeGreaterThan(0);
+      expect(id!.length).toBeGreaterThan(0);
     });
 
     test("returns cached ID on subsequent calls", () => {
@@ -168,7 +168,7 @@ describe("AvoStreamId", () => {
       expect(id).not.toBe(storedId);
       expect(id).not.toBe("unknown");
       expect(typeof id).toBe("string");
-      expect(id.length).toBeGreaterThan(0);
+      expect(id!.length).toBeGreaterThan(0);
     });
 
     test("does NOT reset when both age < 4h and idle < 2h", () => {

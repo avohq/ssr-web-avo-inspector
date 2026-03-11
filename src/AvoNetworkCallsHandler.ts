@@ -24,7 +24,7 @@ export interface BaseBody {
   trackingId: string;
   createdAt: string;
   sessionId: string;
-  streamId: string;
+  streamId?: string;
   samplingRate: number;
   publicEncryptionKey?: string;
 }
@@ -328,7 +328,7 @@ export class AvoNetworkCallsHandler {
       trackingId: "",
       createdAt: new Date().toISOString(),
       sessionId: "",
-      streamId: AvoStreamId.getAnonymousId(),
+      streamId: AvoStreamId.getAnonymousId() ?? undefined,
       samplingRate: this.samplingRate,
     };
     if (this.shouldEncrypt()) {
