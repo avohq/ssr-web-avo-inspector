@@ -18,6 +18,7 @@ const mockedReturns = {
   INSTALLATION_ID: "avo-instalation-id",
   GUID: "generated-guid",
   SESSION_ID: "session-id",
+  ANONYMOUS_ID: "mock-anonymous-id",
 };
 
 const networkCallType = {

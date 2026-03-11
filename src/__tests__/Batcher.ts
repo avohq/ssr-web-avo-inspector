@@ -224,18 +224,23 @@ describe("Batcher", () => {
     expect(events.length).toBe(1);
   });
 
-  test("Batch is not sent if batchFlushSeconds not exceeded", () => {
+  test("Batch is not sent if batchFlushSeconds not exceeded", async () => {
+    // Clear storage to prevent constructor's async init from triggering a batch
+    AvoInspector.avoStorage.removeItem(AvoBatcher.cacheKey);
+
     const inspector = new AvoInspector(defaultOptions);
     inspector.enableLogging(false);
 
-    const now = new Date();
+    // Wait for constructor's async getItemAsync().then() to complete
+    await new Promise((r) => setTimeout(r, 50));
+
+    checkBatchSpy.mockClear();
+    inspectorCallSpy.mockClear();
+
+    const baseTime = Date.now();
     const dateNowSpy = jest
       .spyOn(Date, "now")
-      .mockImplementation(() =>
-        now.setMilliseconds(
-          now.getMilliseconds() + (AvoInspector.batchFlushSeconds - 1) * 1000,
-        ),
-      );
+      .mockReturnValue(baseTime + (AvoInspector.batchFlushSeconds - 1) * 1000);
 
     inspector.avoBatcher.handleTrackSchema("event name", [], null, null);
 
@@ -246,25 +251,27 @@ describe("Batcher", () => {
   });
 
   test("Batch is sent if batchFlushSeconds exceeded", async () => {
+    // Clear storage to prevent constructor's async init from triggering a batch
+    AvoInspector.avoStorage.removeItem(AvoBatcher.cacheKey);
+
     const inspector = new AvoInspector(defaultOptions);
     inspector.enableLogging(false);
 
-    const now = new Date();
+    // Wait for constructor's async getItemAsync().then() to complete
+    await new Promise((r) => setTimeout(r, 50));
+
+    checkBatchSpy.mockClear();
+    inspectorCallSpy.mockClear();
+
+    const baseTime = Date.now();
     const dateNowSpy = jest
       .spyOn(Date, "now")
-      .mockImplementation(() =>
-        now.setMilliseconds(
-          now.getMilliseconds() + AvoInspector.batchFlushSeconds * 1000,
-        ),
-      );
+      .mockReturnValue(baseTime + AvoInspector.batchFlushSeconds * 1000);
 
-    await inspector.avoBatcher.handleTrackSchema("event name", [], null, null);
-
-    const events = storage.getItem(AvoBatcher.cacheKey);
+    inspector.avoBatcher.handleTrackSchema("event name", [], null, null);
 
     expect(checkBatchSpy).toHaveBeenCalledTimes(1);
     expect(inspectorCallSpy).toHaveBeenCalledTimes(1);
-  //expect(inspectorCallSpy).toHaveBeenCalledWith(events, expect.any(Function));
 
     dateNowSpy.mockRestore();
   });
