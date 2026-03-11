@@ -263,11 +263,7 @@ function getOrCompileRegex(pattern: string): RegExp | null {
  * not on a runtime timeout — JS regex execution is synchronous and cannot
  * be interrupted by setTimeout.
  */
-async function testRegexWithTimeout(
-  regex: RegExp,
-  value: string,
-  _timeoutMs: number = 1000
-): Promise<boolean> {
+function testRegex(regex: RegExp, value: string): boolean {
   try {
     return regex.test(value);
   } catch (e) {
@@ -380,9 +376,9 @@ function collectConstraintsByPropertyName(
     return {};
   }
 
-  // Fast path: single event (shallow copy to prevent mutation of cached spec)
+  // Fast path: single event (deep copy to prevent mutation of cached spec)
   if (events.length === 1) {
-    return { ...events[0].props };
+    return deepCopyChildren(events[0].props);
   }
 
   // Multiple events: aggregate constraints from all events
@@ -737,7 +733,7 @@ async function checkRegexPatterns(
       continue;
     }
 
-    const matched = await testRegexWithTimeout(regex, value, 1000);
+    const matched = testRegex(regex, value);
     if (!matched) {
       addIdsToSet(eventIds, failedIds);
     }

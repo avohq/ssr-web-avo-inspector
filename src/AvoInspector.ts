@@ -135,63 +135,13 @@ export class AvoInspector {
     propertyType: string;
     children?: any;
   }>> {
-    try {
-      if (
-        this.avoDeduplicator.shouldRegisterEvent(
-          eventName,
-          eventProperties,
-          false
-        )
-      ) {
-        if (AvoInspector.shouldLog) {
-          console.log(
-            "Avo Inspector: supplied event " +
-            eventName +
-            " with params " +
-            JSON.stringify(eventProperties)
-          );
-        }
-        let eventSchema = this.extractSchema(eventProperties, false);
-
-        // Fetch and validate event spec (blocking)
-        const validationResult = await this.validateEvent(
-          eventName,
-          eventProperties
-        );
-
-        if (validationResult) {
-          // Spec available: merge validation results into schema and send immediately
-          const schemaWithValidation = this.mergeValidationResults(
-            eventSchema,
-            validationResult
-          );
-          await this.sendEventWithValidation(
-            eventName,
-            schemaWithValidation,
-            null,
-            null,
-            validationResult,
-            eventProperties
-          );
-        } else {
-          // No spec: fall back to batched flow (still encrypt if possible)
-          await this.trackSchemaInternal(eventName, eventSchema, null, null, eventProperties);
-        }
-
-        return eventSchema;
-      } else {
-        if (AvoInspector.shouldLog) {
-          console.log("Avo Inspector: Deduplicated event: " + eventName);
-        }
-        return [];
-      }
-    } catch (e) {
-      console.error(
-        "Avo Inspector: something went wrong. Please report to support@avo.app.",
-        e
-      );
-      return [];
-    }
+    return this.trackSchemaFromEventInternal(
+      eventName,
+      eventProperties,
+      false,
+      null,
+      null
+    );
   }
 
   private async _avoFunctionTrackSchemaFromEvent(
@@ -204,12 +154,35 @@ export class AvoInspector {
     propertyType: string;
     children?: any;
   }>> {
+    return this.trackSchemaFromEventInternal(
+      eventName,
+      eventProperties,
+      true,
+      eventId,
+      eventHash
+    );
+  }
+
+  /**
+   * Shared implementation for trackSchemaFromEvent and _avoFunctionTrackSchemaFromEvent.
+   */
+  private async trackSchemaFromEventInternal(
+    eventName: string,
+    eventProperties: { [propName: string]: any },
+    fromAvoFunction: boolean,
+    eventId: string | null,
+    eventHash: string | null
+  ): Promise<Array<{
+    propertyName: string;
+    propertyType: string;
+    children?: any;
+  }>> {
     try {
       if (
         this.avoDeduplicator.shouldRegisterEvent(
           eventName,
           eventProperties,
-          true
+          fromAvoFunction
         )
       ) {
         if (AvoInspector.shouldLog) {

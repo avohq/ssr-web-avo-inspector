@@ -142,8 +142,7 @@ export async function encryptValue(value: any, publicKey: string): Promise<strin
   try {
     const stringValue = value === undefined ? 'null' : JSON.stringify(value)
 
-    const publicKeyStr = typeof publicKey === 'string' ? publicKey : String(publicKey)
-    const recipientPublicKeyBytes = hexToBytes(publicKeyStr)
+    const recipientPublicKeyBytes = hexToBytes(publicKey)
 
     // Generate ephemeral key pair on P-256
     const ephemeralPrivateKeyBytes = p256.utils.randomPrivateKey()
@@ -239,8 +238,6 @@ export async function decryptValue(encryptedValue: string, privateKey: string): 
       throw new Error('Invalid encrypted data: payload too short')
     }
 
-    const privateKeyStr = typeof privateKey === 'string' ? privateKey : String(privateKey)
-
     let offset = 0
     const version = encryptedBuffer[offset]
     offset += 1
@@ -268,7 +265,7 @@ export async function decryptValue(encryptedValue: string, privateKey: string): 
 
     const ciphertext = encryptedBuffer.slice(offset)
 
-    const recipientPrivateKeyBytes = hexToBytes(privateKeyStr)
+    const recipientPrivateKeyBytes = hexToBytes(privateKey)
 
     // ECDH shared secret
     const sharedSecretPoint = p256.getSharedSecret(recipientPrivateKeyBytes, ephemeralPublicKey)
