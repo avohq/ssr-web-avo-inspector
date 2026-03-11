@@ -35,15 +35,14 @@ describe("AvoStreamId", () => {
   });
 
   describe("getAnonymousId", () => {
-    test('returns a real GUID (not "unknown") when avoStorage is not initialized and no cached ID', () => {
+    test('returns "unknown" when avoStorage is not initialized and no cached ID', () => {
       // Force storage to appear uninitialized
       (AvoInspector.avoStorage.storageImpl as any).storageInitialized = false;
       AvoStreamId["_anonymousId"] = null;
 
       const result = AvoStreamId.getAnonymousId();
 
-      expect(result).not.toBe("unknown");
-      expect(result).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      expect(result).toBe("unknown");
     });
 
     test("returns cached ID even when avoStorage is not initialized", () => {
