@@ -13,7 +13,8 @@ export class AvoStreamId {
    *   - age > 4 hours (time since creation)
    *   - idle > 2 hours (time since last activity)
    *
-   * Returns 'unknown' if AvoInspector.avoStorage is not initialized.
+   * When storage is not yet initialized, generates an in-memory ID immediately
+   * and schedules a sync once storage is ready (for cross-session continuity).
    */
   static getAnonymousId(): string {
     const now = Date.now();
@@ -28,9 +29,16 @@ export class AvoStreamId {
       return AvoStreamId._anonymousId as string;
     }
 
-    // Return 'unknown' if storage is not initialized
+    // Storage not yet initialized — generate an in-memory ID immediately so
+    // early callers (e.g. validateEvent) get a real ID instead of 'unknown'.
+    // Once storage is ready, sync: load the persisted ID if one exists (for
+    // cross-session continuity), or persist the in-memory ID if not.
     if (!AvoStreamId.storageAvailable()) {
-      return "unknown";
+      AvoStreamId._anonymousId = AvoGuid.newGuid();
+      AvoInspector.avoStorage.runAfterInit(() => {
+        AvoStreamId.syncWithStorageAfterInit(Date.now());
+      });
+      return AvoStreamId._anonymousId as string;
     }
 
     // Try to load from storage
@@ -83,6 +91,32 @@ export class AvoStreamId {
     const idle = now - lastActivity;
 
     return age > FOUR_HOURS_MS && idle > TWO_HOURS_MS;
+  }
+
+  /**
+   * Called once storage becomes available. Loads any persisted ID to maintain
+   * cross-session continuity, or persists the in-memory ID created before
+   * storage was ready.
+   */
+  private static syncWithStorageAfterInit(now: number): void {
+    try {
+      const storedId = AvoInspector.avoStorage.getItem<string>(AvoStreamId.streamIdKey);
+      if (storedId !== null && storedId !== undefined && !AvoStreamId.shouldReset(now)) {
+        // Restore from persisted session — replace the temporary in-memory ID
+        AvoStreamId._anonymousId = storedId;
+        AvoStreamId.updateLastActivity(now);
+      } else {
+        // No valid stored ID — persist the in-memory ID we already generated
+        AvoInspector.avoStorage.setItem(AvoStreamId.streamIdKey, AvoStreamId._anonymousId);
+        AvoInspector.avoStorage.setItem(AvoStreamId.createdAtKey, now);
+        AvoInspector.avoStorage.setItem(AvoStreamId.lastActivityKey, now);
+      }
+    } catch (e) {
+      console.error(
+        "Avo Inspector: something went wrong. Please report to support@avo.app.",
+        e
+      );
+    }
   }
 
   private static createNewId(now: number): void {
