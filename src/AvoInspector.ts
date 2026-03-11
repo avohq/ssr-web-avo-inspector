@@ -121,7 +121,7 @@ export class AvoInspector {
     // Initialize event spec validation (active in dev/staging only)
     this.eventSpecCache = new EventSpecCache(AvoInspector._shouldLog);
     this.eventSpecFetcher = new AvoEventSpecFetcher(
-      2000,
+      5000,
       AvoInspector._shouldLog,
       this.environment.toString()
     );
