@@ -1,6 +1,6 @@
 {
   "name": "ssr-web-avo-inspector",
-  "version": "2.0.0-alpha.1",
+  "version": "2.1.0",
   "description": "Avo Inspector for web with SSR and web workers support",
   "main": "dist/index.js",
   "browser": "dist/index.js",
@@ -17,7 +17,9 @@
   },
   "jest": {
     "testEnvironment": "jsdom",
-    "setupFiles": ["./jest.setup.js"],
+    "setupFiles": [
+      "./jest.setup.js"
+    ],
     "transform": {
       "^.+\\.[j]sx?$": "babel-jest",
       "^.+\\.[t]sx?$": "ts-jest"
