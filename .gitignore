@@ -25,3 +25,5 @@ yarn-error.log*
 
 .vscode
 .cache
+# Repo standardizes on yarn; keep a single lockfile (see AVO-3255)
+package-lock.json
